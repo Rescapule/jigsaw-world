@@ -6,9 +6,10 @@ import * as explore from './engine/explore.js';
 import * as battle from './engine/battle.js';
 import * as lab from './engine/lab.js';
 import * as mosaic from './engine/mosaic.js';
+import * as roleBadges from './engine/roleBadges.js';
 
 // Register exports onto window so inline HTML onclick="..." handlers & cross-module calls work seamlessly
-Object.assign(window, constants, { state }, core, explore, battle, lab, mosaic);
+Object.assign(window, constants, { state }, core, explore, battle, lab, mosaic, roleBadges);
 
 /* ============================================================================
 
@@ -17,6 +18,7 @@ Object.assign(window, constants, { state }, core, explore, battle, lab, mosaic);
    ============================================================================ */
 
 export function bootGame() {
+  roleBadges.registerMonsterSkills();
 
   const loadedSave = loadGameFromStorage();
 

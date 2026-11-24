@@ -194,6 +194,7 @@ export function checkBattleEnd() {
   const aliveFoes = state.battle.foes.filter(f => f.hp > 0 && !f.captured);
   const aliveAllies = state.battle.allies.filter(a => a.hp > 0);
   if (aliveFoes.length === 0) {
+    if (state.battle.citizenTrial) window.handleCitizenTrialEnd(true);
     state.battle.active = false;
     if (state.battle.timerId) clearTimeout(state.battle.timerId);
     const bMult = (state.blessing && state.blessing.id === 'prospector') ? 1.5 : 1.0;
@@ -227,6 +228,7 @@ export function checkBattleEnd() {
     updateHeaderUI(); renderBattle(); return true;
   }
   if (aliveAllies.length === 0) {
+    if (state.battle.citizenTrial) window.handleCitizenTrialEnd(false);
     state.battle.active = false;
     if (state.battle.timerId) clearTimeout(state.battle.timerId);
     addLog(`<span style="color:#fca5a5; font-weight:bold;">💫 Squad Unmoored! Retreating safely...</span>`);
@@ -403,7 +405,7 @@ export function pickAutoGambitMove(ally, hero) {
 
   // v0.2e FIX: If Auto-Badge is ON and an [UNMOORED] foe exists, fire Throw Role Badge BEFORE Folder 1 attacks KO them!
 
-  if (state.battle.autoBadge && state.resources.badges > 0) {
+  if (state.battle.autoBadge && state.badgePouch.length > 0) {
 
     const unmoored = aliveFoes.find(f => isUnmoored(f));
 
@@ -465,7 +467,7 @@ export function pickAutoGambitMove(ally, hero) {
 
       if (sid === 'throw_badge') {
 
-        if (!state.battle.autoBadge || state.resources.badges <= 0) continue;
+        if (!state.battle.autoBadge || state.badgePouch.length <= 0) continue;
 
         const unmoored = aliveFoes.find(f => isUnmoored(f));
 
@@ -741,7 +743,7 @@ export function executeAllySkill(ally, sk, targetKey, slotCode, isAuto) {
 
   if (sk.id === 'throw_badge') {
 
-    if (!target || !isUnmoored(target) || state.resources.badges <= 0) {
+    if (!target || !isUnmoored(target) || state.badgePouch.length <= 0) {
 
       advanceTurn();
 
@@ -749,17 +751,9 @@ export function executeAllySkill(ally, sk, targetKey, slotCode, isAuto) {
 
     }
 
-    state.resources.badges -= 1;
-
     if (isAuto) {
-
-      const lockedHero = state.heroes.find(h => Object.values(h.chakras).includes('Blocked'));
-
-      const roleKind = lockedHero ? 'teacher' : 'merchant';
-
       addLog(`<span style="color:#34d399; font-weight:bold;">🏷 [AUTO-BADGE ${slotCode}] <b>${ally.name}</b> intercepts &amp; stamps a Role Badge onto Unmoored <b>${target.name}</b>!</span>`);
-
-      resolveRoleBadgeCapture(target, roleKind, true);
+      window.stampMonsterToTown(target.key, 0, true);
 
       updateHeaderUI();
 
@@ -768,8 +762,7 @@ export function executeAllySkill(ally, sk, targetKey, slotCode, isAuto) {
       if (!checkBattleEnd()) scheduleNextStep(advanceTurn);
 
     } else {
-
-      openRoleBadgeModal(target);
+      window.openPreTypedBadgeModal(target);
 
     }
 
@@ -1659,15 +1652,13 @@ export function executeEnemyTurn(foe) {
 
 export function openQuickBadgeModal() {
 
-  if (!state.battle.active || state.resources.badges <= 0) return;
+  if (!state.battle.active || state.badgePouch.length <= 0) return;
 
   const unmoored = state.battle.foes.find(f => isUnmoored(f));
 
   if (!unmoored) return;
 
-  state.resources.badges -= 1;
-
-  openRoleBadgeModal(unmoored);
+  window.openPreTypedBadgeModal(unmoored);
 
 }
 
@@ -2319,9 +2310,8 @@ export function renderCommandDeck() {
 
       <div style="font-size:12px;">${statusPrompt}</div>
 
-      ${(unmooredExists && state.resources.badges > 0 && state.battle.mode === 'manual' && activeUnit?.key.startsWith('ally_'))
-
-        ? `<button class="btn-magenta" onclick="openQuickBadgeModal()">🏷 QUICK-BADGE UNMOORED FOE (${state.resources.badges} left)</button>`
+      ${(unmooredExists && state.badgePouch.length > 0 && state.battle.mode === 'manual' && activeUnit?.key.startsWith('ally_'))
+        ? `<button class="btn-magenta" onclick="openQuickBadgeModal()">🏷 QUICK-BADGE UNMOORED FOE (${state.badgePouch.length} left)</button>`
 
         : ''}
 

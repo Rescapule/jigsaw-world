@@ -34,10 +34,10 @@ export function revealFogAround(cx, cy) {
 }
 
 export function generateNewSkyShard(presetDive = null, consumeSeals = true) {
+  window.refillShardBadgePouch();
   state.overworldBackup = null;
   state.subMap = { active:false, kind:null, title:'', floor:1, maxFloors:1, divePrestige:0, stageRule:'clear_sky', townData:null, floorsCache:{} };
   state.blessing = null;
-  refillShardBadgePouch();
 
   const W = 11, H = 9;
   const biome = BIOME_PALETTES[Math.floor(Math.random() * BIOME_PALETTES.length)];
@@ -223,13 +223,7 @@ export function buildProceduralTownFloor(townData) {
     tiles[by][bx].bldgName = b.name;
   });
 
-  // Place Badged Monster Citizens on the 5 Town Plaza Visitor Spots!
-  if (!Array.isArray(townData.citizens)) townData.citizens = [];
-  townData.citizens.slice(0, 5).forEach((cit, idx) => {
-    const [cx, cy] = TOWN_VISITOR_SPOTS[idx];
-    tiles[cy][cx].type = 'town_citizen';
-    tiles[cy][cx].citizenIdx = idx;
-  });
+  window.placeCitizensInTownGrid(tiles, townData);
 
   return { width:W, height:H, tiles, entryPos:{ x:1, y:1 }, stairsPos:{ x:1, y:1 } };
 }
@@ -480,7 +474,7 @@ export function handleTileStep(tile) {
   } else if (['town','arena_cellar','small_cellar','big_cellar','spider_dungeon','foundry_dungeon'].includes(tile.type)) {
     enterSubMap(tile);
   } else if (tile.type === 'town_citizen') {
-    openTownCitizenModal(tile.citizenIdx);
+    window.openTownCitizenModal(tile.citizenId);
   } else if (tile.type.startsWith('bldg_')) {
     openTownBuildingModal(tile.type);
   } else if (tile.type === 'exit_ladder') {
@@ -522,9 +516,9 @@ export function handleTileStep(tile) {
     }
   } else if (tile.type === 'shrine') {
     state.resources.seals += 1;
-    const added = addRandomTypedBadge();
+    const added = window.grantTypedBadge(1);
     tile.type = 'floor';
-    addLog(`<span style="color:#6ee7b7;">⛩ Field Shrine: +1📜 Teacher Seal${added ? ` & +1 ${added.icon} <b>${added.name}</b>` : ' (Badge Pouch full 5/5)'}!</span>`);
+    addLog(`<span style="color:#6ee7b7;">⛩ Field Shrine: +1📜 Teacher Seal${added?.length ? ` & +1 ${added.join(', ')}` : ' (Badge Pouch full 5/5)'}!</span>`);
   } else if (tile.type === 'well') { tile.type = 'floor'; openChaosWellModal(); }
   else if (tile.type === 'mystery_event') { tile.type = 'floor'; openMysteryEventModal(); }
   else if (tile.type === 'arena_boss') launchMapEncounter(tile, 'arena_boss');
@@ -972,8 +966,8 @@ export function buyShopItem(kind, cost) {
   if (kind === 'rations') { state.fatigue = Math.max(0, state.fatigue - 25); state.resources.batteries += 6; addLog(`<span style="color:#6ee7b7;">🍙 Ate Rations: -25 Fatigue & +6⚡!</span>`); }
   else if (kind === 'badges' && td && !td.shopBadgeSold) {
     td.shopBadgeSold = true;
-    const added = addRandomTypedBadge(td.shopBadgeType || 'rival');
-    if (added) addLog(`<span style="color:${added.color}; font-weight:bold;">🛒 Purchased ${added.icon} <b>${added.name}</b>!</span>`);
+    const added = window.grantTypedBadge(1, td.shopBadgeType || 'rival');
+    if (added.length) addLog(`<span style="color:#f472b6; font-weight:bold;">🛒 Purchased ${added[0]}!</span>`);
   } else if (kind === 'seals') {
     const sPick = SHINTO_SEALS[Math.floor(Math.random() * SHINTO_SEALS.length)];
     state.sealCounts[sPick.id] = (state.sealCounts[sPick.id] || 0) + 1; state.resources.seals += 1;
@@ -1148,10 +1142,10 @@ export function getTileHoverTooltip(t, isPlayer) {
   if (!t.revealed) return '🌫️ Unexplored Fog of War — Move closer to scout!';
   const prefix = isPlayer ? '🧙 YOUR PARTY HERE — ' : '';
   if (t.type === 'town_citizen') {
-    const cit = state.subMap.townData?.citizens?.[t.citizenIdx];
+    const cit = state.subMap.townData?.citizens?.find(c => c.id === t.citizenId);
     if (cit) {
       const r = ROLE_BADGE_TYPES[cit.role] || ROLE_BADGE_TYPES.smuggler;
-      return `${prefix}${cit.sprite} [${r.icon} ${r.short}] ${cit.name} (${cit.element}) — Relocated Town Citizen! Step/Click to interact!`;
+      return `${prefix}${cit.sprite} ${cit.name} — ${r.name} (${r.short})! Step/Click to interact!`;
     }
   }
   switch (t.type) {
@@ -1232,10 +1226,10 @@ export function renderExplore() {
       if (!t.revealed) { html += `<div class="map-tile fog" title="${safeTip}">·</div>`; continue; }
       let icon = '', extraStyle = '', subPip = '';
       if (t.type === 'town_citizen') {
-        const cit = state.subMap.townData?.citizens?.[t.citizenIdx];
+        const cit = state.subMap.townData?.citizens?.find(c => c.id === t.citizenId);
         const r = cit ? ROLE_BADGE_TYPES[cit.role] : null;
-        icon = isPlayer ? '🧙' : (cit?.sprite || '👾');
-        extraStyle = `border:2px solid ${r?.color || '#fde047'}; box-shadow:inset 0 0 8px rgba(244,114,182,0.35);`;
+        icon = isPlayer ? '🧙' : (t.citizenSprite || cit?.sprite || '👾');
+        extraStyle = `border:2px solid ${r?.color || '#f0abfc'}; box-shadow:0 0 10px #f0abfc, inset 0 0 8px rgba(244,114,182,0.45);`;
         if (r) subPip = `<span class="citizen-pip">${r.icon}</span>`;
       } else if (isPlayer) icon = '🧙';
       else if (t.type === 'wall') icon = t.breakable ? '🪨' : '🧱';

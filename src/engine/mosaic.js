@@ -487,11 +487,11 @@ export function spinDreamsmithSlots(payWithBatteries = false) {
 
     state.sealCounts[sealPick.id] = (state.sealCounts[sealPick.id] || 0) + 1;
 
-    state.resources.badges += 2;
+    const added = window.grantTypedBadge(2);
 
     state.slotReels = ['⛩', '🏷', '⛩'];
 
-    addLog(`<span style="color:#fde047;">🎰 DREAMSMITH SLOTS: Won <b>${sealPick.name}</b> + 2🏷 Role Badges!</span>`);
+    addLog(`<span style="color:#fde047;">🎰 DREAMSMITH SLOTS: Won <b>${sealPick.name}</b>${added.length ? ` + ${added.length}🏷 Role Badges!` : ' (Badge Pouch already full 5/5)!'}</span>`);
 
   } else if (roll < 0.78) {
 
