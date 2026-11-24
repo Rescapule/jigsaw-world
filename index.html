@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JIGSAW WORLD</title>
+</head>
+<body>
+<header>
+  <div class="brand-block">
+    <span class="brand-title">🧩 JIGSAW WORLD v0.2f</span>
+    <span style="font-size:11px; color:var(--text-muted);">PRE-TYPED ROLE BADGES · TOWN PLAZA CITIZENS</span>
+  </div>
+
+  <div class="res-strip">
+    <div class="res-pill" title="Clan Gold">🪙 Gold: <span id="res-gold">0</span></div>
+    <div class="res-pill" title="Shard Batteries">⚡ Batteries: <span id="res-batteries">0</span></div>
+    <div class="res-pill" title="Forge Ore">⛏ Ore: <span id="res-ore">0</span></div>
+    <button class="btn-magenta" style="padding:3px 8px; font-size:11.5px;" onclick="openBadgePouchModal()" title="Inspect Pre-Typed Role Badges (Max 5 per Sky-Shard! Captured foes relocate to Town Plaza)">
+      🏷 Badges: <span id="res-badges">0</span>/5
+    </button>
+    <div class="res-pill" title="Chakra Teacher Seals">📜 Seals: <span id="res-seals">0</span></div>
+    <div class="res-pill" title="Dreamsmith Casino Tokens">🎰 Tokens: <span id="res-tokens">0</span></div>
+    <div class="res-pill" id="fatigue-pill" title="Overworld steps add Fatigue (0 inside Towns, Cellars & Dungeons). Rest at Town Inns!">
+      🥾 Fatigue: <span id="res-fatigue">0</span> (<span id="res-fatigue-tier">Rested</span>)
+    </div>
+    <div class="res-pill" id="blessing-pill" style="display:none; border-color:#34d399; color:#a7f3d0;" title="Active Sky-Shard Blessing"></div>
+    <button class="btn-cyan" style="padding:3px 8px; font-size:11.5px;" onclick="openKeyVaultModal()" title="Inspect Attuned Keys & Smuggler Key Shards">
+      🗝️ Keys: <span id="res-keys">0</span>
+    </button>
+    <button class="btn-emerald" style="padding:3px 8px; font-size:11.5px;" onclick="openSaveModal()" title="Auto-Save Status, Export/Import & Reset">
+      💾 Save
+    </button>
+  </div>
+
+  <div class="hearth-box">
+    <div>
+      <div style="font-size:10px; color:#fcd34d; font-weight:bold;">🔥 CLAN HEARTH IDLE CHEST</div>
+      <div id="idle-preview" style="font-size:11px; color:var(--text-main);">+0🪙 +0⚡ +0⛏ (0s)</div>
+    </div>
+    <button class="btn-gold" onclick="collectIdleLoot()">COLLECT IDLE LOOT</button>
+  </div>
+</header>
+
+<nav class="nav-tabs">
+  <button class="tab-btn active" id="tabbtn-explore" onclick="switchTab('explore')">[1. EXPLORE SHARD]</button>
+  <button class="tab-btn" id="tabbtn-battle" onclick="switchTab('battle')">[2. 5v5 BATTLE]</button>
+  <button class="tab-btn" id="tabbtn-lab" onclick="switchTab('lab')">[3. SQUAD &amp; 4×4 LAB]</button>
+  <button class="tab-btn" id="tabbtn-mosaic" onclick="switchTab('mosaic')">[4. MOSAIC &amp; SLOTS]</button>
+</nav>
+
+<main>
+  <!-- TAB 1: EXPLORE -->
+  <section class="tab-view active" id="view-explore">
+    <div class="explore-layout">
+      <div class="explore-controls bevel scroll-panel">
+        <div style="font-weight:bold; color:#fde047; margin-bottom:2px;">⛩ PAPER SHINTO SEALS (MAX 3)</div>
+        <div style="font-size:11px; color:var(--text-muted); margin-bottom:6px;">Toggle seals before generating a new procedural Sky-Shard:</div>
+        <div id="shinto-seal-list" style="display:flex; flex-direction:column; gap:5px; margin-bottom:8px;"></div>
+        <button class="btn-gold" style="width:100%; padding:8px;" onclick="generateNewSkyShard()">✨ GENERATE NEW SKY-SHARD</button>
+
+        <div class="bevel-inset" style="padding:7px; margin-top:6px;">
+          <div style="font-weight:bold; color:#67e8f9;" id="shard-title-label">Current Sky-Shard</div>
+          <div id="shard-crystals-status" style="font-size:11.5px; margin-top:4px;"></div>
+          <div id="shard-town-citizens" style="font-size:11px; color:#fbcfe8; margin-top:5px;"></div>
+          <div style="font-size:10.5px; color:var(--text-muted); margin-top:4px;">
+            Attune all 💎 Crystals to <b>Stabilize</b> shard. Badged foes smoke-bomb straight to <b>🏘️ Town</b>!
+          </div>
+        </div>
+
+        <div style="margin-top:auto; padding-top:6px; text-align:center;">
+          <div style="font-size:10.5px; color:var(--text-muted); margin-bottom:4px;">Move: WASD / Arrows / Click Tile</div>
+          <div class="dpad">
+            <div></div><button onclick="movePlayer(0,-1)">▲</button><div></div>
+            <button onclick="movePlayer(-1,0)">◀</button><button onclick="movePlayer(0,1)">▼</button><button onclick="movePlayer(1,0)">▶</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="map-stage bevel">
+        <div class="breadcrumb-bar" id="map-breadcrumb-bar">
+          <span id="explore-banner" style="font-weight:bold; color:#fde68a;">Overworld Sky-Shard</span>
+          <span id="explore-stage-tag" style="font-size:11px; color:#a5f3fc;">☀️ Clear Sky</span>
+        </div>
+        <div class="shard-grid" id="shard-grid"></div>
+        <div id="map-legend" style="display:flex; flex-wrap:wrap; gap:9px; margin-top:8px; font-size:11px; color:var(--text-muted);">
+          <span title="Your active 5-Hero Clan Party">🧙 Party</span>
+          <span title="Cracked Rubble: Walk/Click to smash open (+6🥾 Fatigue, 30% Ore drop)">🪨 Smash (+6🥾)</span>
+          <span title="Guaranteed Town (0 Fatigue inside): Buildings + up to 5 Badged Monster Citizens!">🏘️ Town</span>
+          <span title="Boss-Rush Crucible Arena: Escalating Champion bouts with Spirit Referee Judge Laws">🏟️ Arena</span>
+          <span title="Elemental Crystal: Attune all Crystals on the map to Stabilize this Sky-Shard">💎 Crystal</span>
+          <span title="Small Cellar (1 Floor) / Big Cellar (Multi-Floor) mini-dungeons">🕳️/🏛️ Cellar</span>
+          <span title="3-Floor Themed Dungeons with Stage Rules & Boss Reliquaries">🕸️/⚙️ Dungeon</span>
+          <span title="Mystery Encounters & Primal Chaos Wells">❔/❓ Event</span>
+          <span title="Unlocked & Attuned Key-Locked Treasure Chests">📦/🔒 Chest</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 2: 5v5 BATTLE -->
+  <section class="tab-view" id="view-battle">
+    <div class="battle-layout">
+      <div class="battle-topbar bevel">
+        <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+          <span style="font-size:11px; color:var(--text-muted); font-weight:bold;">MODE:</span>
+          <button id="mode-manual" onclick="setBattleMode('manual')">[MANUAL MODE]</button>
+          <button id="mode-auto1" onclick="setBattleMode('auto1')">[AUTO-GAMBIT: 1x]</button>
+          <button id="mode-auto4" onclick="setBattleMode('auto4')">[AUTO-GAMBIT: 4x TURBO]</button>
+          <button id="btn-autobadge" onclick="toggleAutoBadge()" title="Auto-stamps the front Pre-Typed Badge from your pouch onto UNMOORED (<=35% HP) foes, sending them to Town!">🏷 Auto-Badge: ON</button>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <div class="res-pill" id="synergy-tracker" title="Active Squad Umbrella Synergy">🧩 Synergy: Checking...</div>
+          <div class="res-pill" id="chain-tracker" title="Cast 3 same-element skills in a row for a Crystal Chain Burst!">⛓ Chain: None (0/3)</div>
+          <button id="btn-overdrive" class="btn-gold" disabled onclick="triggerSquadOverdrive()">★ OVERDRIVE (0%)</button>
+          <button class="btn-cyan" onclick="startSkirmishBattle()">⚔ Sparring Fight</button>
+        </div>
+      </div>
+
+      <div class="bevel-inset" style="padding:4px 8px; display:flex; align-items:center; gap:6px;">
+        <span style="font-size:11px; color:var(--text-muted); font-weight:bold;">TURN QUEUE:</span>
+        <div class="turn-queue" id="turn-queue"></div>
+      </div>
+
+      <div class="battlefield bevel" id="battlefield">
+        <div class="side-half">
+          <div class="canopy-banner" id="player-canopy"><span>☁ CANOPY SLOT: Empty</span></div>
+          <div class="rows-columns">
+            <div class="row-col"><div class="row-header">🛡 BACK ROW (Protected)</div><div id="ally-back-col" style="display:flex; flex-direction:column; gap:5px;"></div></div>
+            <div class="row-col"><div class="row-header">⚔ FRONT ROW (Vanguard)</div><div id="ally-front-col" style="display:flex; flex-direction:column; gap:5px;"></div></div>
+          </div>
+        </div>
+        <div class="side-half">
+          <div class="canopy-banner" id="enemy-canopy">
+            <span id="encounter-title">⚔ Encounter Ready</span>
+            <span id="round-counter" style="color:#fde047; font-weight:bold;">Round 1</span>
+          </div>
+          <div class="rows-columns">
+            <div class="row-col"><div class="row-header">⚔ ENEMY FRONT ROW</div><div id="foe-front-col" style="display:flex; flex-direction:column; gap:5px;"></div></div>
+            <div class="row-col"><div class="row-header">🏹 ENEMY BACK ROW</div><div id="foe-back-col" style="display:flex; flex-direction:column; gap:5px;"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stage-rule-bar" id="stage-rule-bar">
+        <div><b id="stage-rule-name" style="color:#fde047;">☀️ Clear Sky</b><span id="stage-rule-desc" style="color:var(--text-muted); margin-left:6px;">Standard footing.</span></div>
+        <span id="stage-rule-badge" class="el-tag">STAGE RULE ACTIVE</span>
+      </div>
+
+      <div class="judge-law-bar" id="judge-law-bar">
+        <div><b id="judge-law-name" style="color:#fde047;">⚖️ JUDGE LAW: None</b><span id="judge-law-desc" style="color:#e9d5ff; margin-left:6px;"></span></div>
+        <span class="u-tag u-Mantles">⚖️ SPIRIT REFEREE</span>
+      </div>
+
+      <div class="command-deck bevel" id="command-deck"></div>
+    </div>
+  </section>
+
+  <!-- TAB 3: LAB -->
+  <section class="tab-view" id="view-lab">
+    <div class="lab-layout">
+      <div class="bevel scroll-panel" id="lab-hero-sheet"></div>
+      <div class="bevel scroll-panel" id="lab-folder-editor"></div>
+    </div>
+  </section>
+
+  <!-- TAB 4: MOSAIC & SLOTS -->
+  <section class="tab-view" id="view-mosaic">
+    <div class="mosaic-layout">
+      <div class="bevel scroll-panel" id="mosaic-left-panel"></div>
+      <div class="bevel scroll-panel" id="mosaic-right-panel"></div>
+    </div>
+  </section>
+
+  <aside class="side-log bevel">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <span style="font-weight:bold; color:#fde047;">📜 CHRONICLE LOG</span>
+      <button style="padding:2px 6px; font-size:10px;" onclick="clearLog()">Clear</button>
+    </div>
+    <div class="log-entries bevel-inset" id="log-entries"></div>
+  </aside>
+</main>
+
+<div class="modal-backdrop" id="modal-backdrop">
+  <div class="modal-box bevel bevel-gold" id="modal-box"></div>
+</div>
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>
